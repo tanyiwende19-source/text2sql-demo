@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>外卖经营分析助手</title>
+<meta name="description" content="外卖经营分析助手：Text-to-SQL 个人项目，30 题评测准确率 70% → 90%。作者：谭亦文">
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: one reading column (~760px) like an analyst's report; data blocks (chart, tables, SQL) may break wider inside their own scroll containers */
+:root{
+  --bg:#f5f7f6; --surface:#ffffff; --fg:#17211e; --muted:#5b6964; --line:#d9e1de;
+  --accent:#0d7a63; --accent-soft:#e3f2ee; --before:#b4651f; --before-soft:#f8ece0;
+  --code-bg:#eef2f0; --good:#0d7a63; --bad:#b4651f;
+  --display:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --body:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111816; --surface:#18211e; --fg:#e4ece9; --muted:#9aaaa4; --line:#2c3a35;
+  --accent:#4cc4a4; --accent-soft:#16342c; --before:#e39a58; --before-soft:#3a2716;
+  --code-bg:#1f2a26; --good:#4cc4a4; --bad:#e39a58; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111816; --surface:#18211e; --fg:#e4ece9; --muted:#9aaaa4; --line:#2c3a35;
+  --accent:#4cc4a4; --accent-soft:#16342c; --before:#e39a58; --before-soft:#3a2716;
+  --code-bg:#1f2a26; --good:#4cc4a4; --bad:#e39a58; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15.5px;line-height:1.75;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:clamp(28px,5vw,38px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:21px;font-weight:700;display:flex;align-items:baseline;gap:10px}
+h2 .tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+h3{font-size:16px;font-weight:600}
+p{margin:0}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lede{font-size:17px;color:var(--fg);max-width:65ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:13.5px}
+.meta b{color:var(--fg);font-weight:600}
+.stack{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--mono);font-size:12.5px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg)}
+header{display:flex;flex-direction:column;gap:16px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+/* headline numbers */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi .v{font-family:var(--mono);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi .v .arrow{color:var(--muted);font-size:18px;margin:0 4px}
+.kpi .v .to{color:var(--accent)}
+.kpi .l{font-size:13px;color:var(--muted)}
+/* flow */
+.flow{display:grid;gap:0;counter-reset:step;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 18px}
+.flow li{list-style:none;display:grid;grid-template-columns:34px 1fr;gap:10px;padding:12px 0;border-bottom:1px dashed var(--line);counter-increment:step}
+.flow li:last-child{border-bottom:0}
+.flow li::before{content:counter(step);font-family:var(--mono);font-size:13px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);margin-top:2px}
+.flow li.branch::before{background:var(--before-soft);color:var(--before)}
+.flow b{font-weight:600}
+.flow span{color:var(--muted);font-size:14px;display:block}
+.flow{margin:0}
+/* chart */
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:16px}
+.legend{display:flex;gap:18px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.row{display:grid;grid-template-columns:72px 1fr;gap:12px;align-items:center}
+.row .name{font-size:14px;font-weight:600}
+.row .name small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.bars{display:flex;flex-direction:column;gap:5px;min-width:0}
+.bar{display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center}
+.track{height:14px;background:var(--code-bg);border-radius:3px;overflow:hidden}
+.fill{height:100%;border-radius:3px}
+.fill.v1{background:var(--before)}
+.fill.v2{background:var(--accent)}
+.bar .num{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.axis{display:grid;grid-template-columns:72px 1fr;gap:12px}
+.axis .ticks{display:grid;grid-template-columns:1fr 92px;gap:8px}
+.axis .scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted)}
+/* cases */
+.case{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.case .q{font-weight:600}
+.case .why{color:var(--muted);font-size:14px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.side{border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.side.before{background:var(--before-soft)}
+.side.after{background:var(--accent-soft)}
+.side .lab{font-family:var(--mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+.side.before .lab{color:var(--before)}
+.side.after .lab{color:var(--accent)}
+.side .res{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+pre{margin:0;background:var(--code-bg);border-radius:6px;padding:10px 12px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;white-space:pre}
+.hl{background:color-mix(in srgb,var(--accent) 22%,transparent);border-radius:2px}
+.hlb{background:color-mix(in srgb,var(--before) 25%,transparent);border-radius:2px}
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.03em}
+tr:last-child td{border-bottom:0}
+td.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--accent-soft);color:var(--good)}
+.pill.part{background:var(--before-soft);color:var(--bad)}
+ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.note{font-size:13.5px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:6px 18px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:620px){
+  .cmp{grid-template-columns:1fr}
+  .row,.axis{grid-template-columns:56px 1fr}
+  .bar,.axis .ticks{grid-template-columns:1fr 78px}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Text-to-SQL · 个人项目 · 2026.10</div>
+    <h1>外卖经营分析助手</h1>
+    <p class="lede">业务同学用中文提问，系统用大模型生成 SQL，在只读数据库里查询，出错时自动修正，最后给出带数字的业务结论。我用 30 道带标准答案的测试题评测它，按错题原因迭代 Prompt 和工作流。</p>
+    <div class="meta"><span>作者 <b>谭亦文</b></span><span>昆士兰大学 Master of Business (Information Systems)</span></div>
+    <div class="stack">
+      <span class="chip">Dify 工作流</span><span class="chip">Supabase · PostgreSQL</span><span class="chip">gpt-4o-mini</span><span class="chip">Python · duckdb 评测</span><span class="chip">AI Coding 辅助开发</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="s-result">
+    <h2 id="s-result"><span class="tag">结果</span>准确率从 70% 提升到 90%</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="v">70%<span class="arrow">→</span><span class="to">90%</span></div><div class="l">总准确率（30 题）</div></div>
+      <div class="kpi"><div class="v">25%<span class="arrow">→</span><span class="to">63%</span></div><div class="l">困难题（8 题）</div></div>
+      <div class="kpi"><div class="v">7 / 1 / 2</div><div class="l">修好 / 回退 / 仍错（题数）</div></div>
+    </div>
+    <div class="chart" role="img" aria-label="各难度准确率：简单 80% 到 100%，中等 92% 到 100%，困难 25% 到 63%，总计 70% 到 90%">
+      <div class="legend"><span><i style="background:var(--before)"></i>v1 基线</span><span><i style="background:var(--accent)"></i>v2 迭代后</span></div>
+      <div class="row"><div class="name">简单<small>10 题</small></div><div class="bars">
+        <div class="bar"><div class="track"><div class="fill v1" style="width:80%"></div></div><div class="num">8/10 · 80%</div></div>
+        <div class="bar"><div class="track"><div class="fill v2" style="width:100%"></div></div><div class="num">10/10 · 100%</div></div></div></div>
+      <div class="row"><div class="name">中等<small>12 题</small></div><div class="bars">
+        <div class="bar"><div class="track"><div class="fill v1" style="width:91.7%"></div></div><div class="num">11/12 · 92%</div></div>
+        <div class="bar"><div class="track"><div class="fill v2" style="width:100%"></div></div><div class="num">12/12 · 100%</div></div></div></div>
+      <div class="row"><div class="name">困难<small>8 题</small></div><div class="bars">
+        <div class="bar"><div class="track"><div class="fill v1" style="width:25%"></div></div><div class="num">2/8 · 25%</div></div>
+        <div class="bar"><div class="track"><div class="fill v2" style="width:62.5%"></div></div><div class="num">5/8 · 63%</div></div></div></div>
+      <div class="row"><div class="name">总计<small>30 题</small></div><div class="bars">
+        <div class="bar"><div class="track"><div class="fill v1" style="width:70%"></div></div><div class="num">21/30 · 70%</div></div>
+        <div class="bar"><div class="track"><div class="fill v2" style="width:90%"></div></div><div class="num">27/30 · 90%</div></div></div></div>
+      <div class="axis"><span></span><div class="ticks"><div class="scale"><span>0%</span><span>50%</span><span>100%</span></div><span></span></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-flow">
+    <h2 id="s-flow"><span class="tag">架构</span>一次提问经过的六步</h2>
+    <ol class="flow">
+      <li><div><b>生成 SQL</b><span>大模型读取 Prompt 里的表结构、指标口径（GMV、客单价、取消率等）和写法规则，输出一条 PostgreSQL 查询</span></div></li>
+      <li><div><b>清洗 SQL</b><span>代码节点去掉代码块标记、多余前缀和结尾分号</span></div></li>
+      <li><div><b>只读执行</b><span>通过 HTTP 调用 Supabase 的 run_sql 函数：只放行 SELECT / WITH，拦截写操作和多条语句，5 秒超时，最多返回 200 行</span></div></li>
+      <li class="branch"><div><b>失败则修正</b><span>执行报错时，把报错信息交回大模型改写 SQL，再执行一次</span></div></li>
+      <li><div><b>合并结果</b><span>修正分支有结果时优先使用，否则使用第一次的结果</span></div></li>
+      <li><div><b>业务解读</b><span>输出结论、数据表、业务解读和所用 SQL，方便业务同学复核</span></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="s-cases">
+    <h2 id="s-cases"><span class="tag">案例</span>三个修复前后对比</h2>
+
+    <div class="case">
+      <div class="q">「本季度的 GMV 是多少？」</div>
+      <div class="why">时间边界：order_time 带时分秒，<code>&lt;= '2026-09-30'</code> 只取到 9 月 30 日零点，漏掉当天全部订单。</div>
+      <div class="cmp">
+        <div class="side before"><div class="lab">v1 · 错误</div><div class="res">GMV = 518,700.91</div>
+<pre>where status = '已完成'
+  and order_time &gt;= '2026-07-01'
+  and <span class="hlb">order_time &lt;= '2026-09-30'</span></pre></div>
+        <div class="side after"><div class="lab">v2 · 正确</div><div class="res">GMV = 526,021.34</div>
+<pre>where status = '已完成'
+<span class="hl">-- 规则：时间一律左闭右开，
+-- 全季度数据无需时间条件</span></pre></div>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="q">「新客满减券实验中，实验组和对照组的人均完成订单数分别是多少？」</div>
+      <div class="why">实验分母偏差：inner join 会丢掉分组里一单未下的用户，人均值被高估。这是实验分析里最常见的统计陷阱。</div>
+      <div class="cmp">
+        <div class="side before"><div class="lab">v1 · 错误</div><div class="res">实验组 3.43 · 对照组 2.95</div>
+<pre>from ab_assignments ab
+<span class="hlb">join orders o</span> on ab.user_id = o.user_id
+where o.status = '已完成'
+-- 分母：count(distinct o.user_id)</pre></div>
+        <div class="side after"><div class="lab">v2 · 正确</div><div class="res">实验组 3.34 · 对照组 2.82</div>
+<pre>from ab_assignments a
+<span class="hl">left join orders o</span> on a.user_id = o.user_id
+  <span class="hl">and o.status = '已完成'</span>
+-- 分母：count(distinct a.user_id)</pre></div>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="q">「本季度下单 10 次及以上的用户有多少人？」</div>
+      <div class="why">缺少外层子查询：v1 返回了 344 行「1」，解读节点只看第一行，给出「只有 1 人」这个笃定但错误的结论。</div>
+      <div class="cmp">
+        <div class="side before"><div class="lab">v1 · 错误</div><div class="res">「只有 1 位用户」</div>
+<pre>select count(distinct user_id)
+from orders where status = '已完成'
+<span class="hlb">group by user_id having count(*) &gt;= 10</span></pre></div>
+        <div class="side after"><div class="lab">v2 · 正确</div><div class="res">344 人</div>
+<pre><span class="hl">select count(*) from (</span>
+  select user_id from orders
+  where status = '已完成'
+  group by user_id having count(*) &gt;= 10
+<span class="hl">) t</span></pre></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-errors">
+    <h2 id="s-errors"><span class="tag">迭代</span>错因分类与改法</h2>
+    <p>v1 的 9 道错题归为 5 类，每类对应一个改动。其中一类不是模型的问题，而是我自己工作流里的 bug。</p>
+    <div class="tbl"><table>
+      <thead><tr><th>错误类型</th><th>原因</th><th>改动</th><th>结果</th></tr></thead>
+      <tbody>
+        <tr><td>时间边界</td><td>用 &lt;= 月末日期，漏掉最后一天</td><td>Prompt 规定左闭右开</td><td><span class="pill ok">修好</span></td></tr>
+        <tr><td>实验分母</td><td>inner join 丢掉零订单用户</td><td>从分组表出发 left join，状态写进 on 条件</td><td><span class="pill ok">修好</span></td></tr>
+        <tr><td>工作流 bug</td><td>修正分支执行了，但变量聚合器总取第一个有值的变量，修正结果被丢弃</td><td>对调聚合器变量顺序</td><td><span class="pill ok">修好</span></td></tr>
+        <tr><td>SQL 结构</td><td>缺子查询、HAVING 引用别名、别名未定义</td><td>补充子查询、窗口函数、留存写法规则和别名自检</td><td><span class="pill part">部分修好</span></td></tr>
+        <tr><td>输出与解读</td><td>月份输出成日期；解读只看第一行</td><td>规定数字月份；解读必须基于全部行</td><td><span class="pill ok">修好</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="s-eval">
+    <h2 id="s-eval"><span class="tag">评测</span>怎么判断「答对了」</h2>
+    <ul class="plain">
+      <li><b>数据</b>：模拟外卖业务库，4 张表：用户 2,000、商家 300、订单 13,657（2026 年 7–9 月）、A/B 实验分组 286；固定随机种子，可复现。</li>
+      <li><b>题目</b>：30 题，简单 10、中等 12、困难 8；困难题覆盖 A/B 实验指标、窗口函数、环比、留存，另有 1 道「数据里没有」的题，检验系统会不会编答案。</li>
+      <li><b>标准答案</b>：用 duckdb 在本地 CSV 上执行标准 SQL 得出，与数据库结果交叉核对。</li>
+      <li><b>判分</b>：比较查询结果而不是 SQL 文本（同一问题有多种正确写法）；数值允许 ±0.01，列名和列顺序不限，有排序要求的题检查顺序。</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="s-limits">
+    <h2 id="s-limits"><span class="tag">局限</span>这个结果的边界</h2>
+    <ul class="plain">
+      <li>v2 的规则是对照 v1 错题写的，并在同一套题上复测，90% 偏乐观；下一步应留出独立测试题做最终评测。</li>
+      <li>规则会被过度泛化：有一题模型把「用 left join」用到了不该用的地方，四舍五入后数值碰巧没变。</li>
+      <li>模型有随机性：「9 月 GMV 环比增长了多少」v1 答对、v2 答成了金额差，题目本身也有歧义，生产中应先向用户确认。</li>
+      <li>每题只跑一次，数据和表结构比真实业务简单。</li>
+    </ul>
+    <p class="note">下一步：把指标口径做成可检索的指标字典按需注入；对有歧义的问题先追问；每题重复 3 次取平均。</p>
+  </section>
+
+  <footer><span>外卖经营分析助手 · 谭亦文</span><span>数据为模拟数据，不代表任何真实公司</span></footer>
+</div>
+</body>
+</html>
