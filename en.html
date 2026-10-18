@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Food Delivery Analytics Assistant</title>
+<meta name="description" content="Text-to-SQL personal project by Yiwen Tan: accuracy improved from 70% to 90% on a 30-question test set.">
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: one reading column (~760px) like an analyst's report; data blocks (chart, tables, SQL) may break wider inside their own scroll containers */
+:root{
+  --bg:#f5f7f6; --surface:#ffffff; --fg:#17211e; --muted:#5b6964; --line:#d9e1de;
+  --accent:#0d7a63; --accent-soft:#e3f2ee; --before:#b4651f; --before-soft:#f8ece0;
+  --code-bg:#eef2f0; --good:#0d7a63; --bad:#b4651f;
+  --display:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --body:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111816; --surface:#18211e; --fg:#e4ece9; --muted:#9aaaa4; --line:#2c3a35;
+  --accent:#4cc4a4; --accent-soft:#16342c; --before:#e39a58; --before-soft:#3a2716;
+  --code-bg:#1f2a26; --good:#4cc4a4; --bad:#e39a58; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111816; --surface:#18211e; --fg:#e4ece9; --muted:#9aaaa4; --line:#2c3a35;
+  --accent:#4cc4a4; --accent-soft:#16342c; --before:#e39a58; --before-soft:#3a2716;
+  --code-bg:#1f2a26; --good:#4cc4a4; --bad:#e39a58; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15.5px;line-height:1.75;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.wrap{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:clamp(28px,5vw,38px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:21px;font-weight:700;display:flex;align-items:baseline;gap:10px}
+h2 .tag{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+h3{font-size:16px;font-weight:600}
+p{margin:0}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+.eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lede{font-size:17px;color:var(--fg);max-width:65ch}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:13.5px}
+.meta b{color:var(--fg);font-weight:600}
+.stack{display:flex;flex-wrap:wrap;gap:8px}
+.cta{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--bg);text-decoration:none;font-weight:600;font-size:15px;padding:10px 20px;border-radius:8px}
+.btn:hover{filter:brightness(1.08)}
+.cta-note{color:var(--muted);font-size:13px;line-height:1.6;flex:1 1 260px}
+.chip{font-family:var(--mono);font-size:12.5px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg)}
+header{display:flex;flex-direction:column;gap:16px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+/* headline numbers */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi .v{font-family:var(--mono);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi .v .arrow{color:var(--muted);font-size:18px;margin:0 4px}
+.kpi .v .to{color:var(--accent)}
+.kpi .l{font-size:13px;color:var(--muted)}
+/* flow */
+.flow{display:grid;gap:0;counter-reset:step;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 18px}
+.flow li{list-style:none;display:grid;grid-template-columns:34px 1fr;gap:10px;padding:12px 0;border-bottom:1px dashed var(--line);counter-increment:step}
+.flow li:last-child{border-bottom:0}
+.flow li::before{content:counter(step);font-family:var(--mono);font-size:13px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);margin-top:2px}
+.flow li.branch::before{background:var(--before-soft);color:var(--before)}
+.flow b{font-weight:600}
+.flow span{color:var(--muted);font-size:14px;display:block}
+.flow{margin:0}
+/* chart */
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:16px}
+.legend{display:flex;gap:18px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.row{display:grid;grid-template-columns:72px 1fr;gap:12px;align-items:center}
+.row .name{font-size:14px;font-weight:600}
+.row .name small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.bars{display:flex;flex-direction:column;gap:5px;min-width:0}
+.bar{display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center}
+.track{height:14px;background:var(--code-bg);border-radius:3px;overflow:hidden}
+.fill{height:100%;border-radius:3px}
+.fill.v1{background:var(--before)}
+.fill.v2{background:var(--accent)}
+.bar .num{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.axis{display:grid;grid-template-columns:72px 1fr;gap:12px}
+.axis .ticks{display:grid;grid-template-columns:1fr 92px;gap:8px}
+.axis .scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted)}
+/* cases */
+.case{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.case .q{font-weight:600}
+.case .why{color:var(--muted);font-size:14px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.side{border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.side.before{background:var(--before-soft)}
+.side.after{background:var(--accent-soft)}
+.side .lab{font-family:var(--mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+.side.before .lab{color:var(--before)}
+.side.after .lab{color:var(--accent)}
+.side .res{font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+pre{margin:0;background:var(--code-bg);border-radius:6px;padding:10px 12px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;white-space:pre}
+.hl{background:color-mix(in srgb,var(--accent) 22%,transparent);border-radius:2px}
+.hlb{background:color-mix(in srgb,var(--before) 25%,transparent);border-radius:2px}
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.03em}
+tr:last-child td{border-bottom:0}
+td.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--accent-soft);color:var(--good)}
+.pill.part{background:var(--before-soft);color:var(--bad)}
+ul.plain{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.note{font-size:13.5px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:6px 18px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:620px){
+  .cmp{grid-template-columns:1fr}
+  .row,.axis{grid-template-columns:56px 1fr}
+  .bar,.axis .ticks{grid-template-columns:1fr 78px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Text-to-SQL · Personal Project · Oct 2026</div>
+    <h1>Food Delivery Analytics Assistant</h1>
+    <p class="lede">Business users ask questions in plain language. The system uses a large language model to write SQL, runs it against a read-only database, retries with an automatic fix when a query fails, and returns a business-ready answer with the numbers. I evaluated it on 30 questions with known answers and improved the prompts and workflow based on the failure patterns.</p>
+    <div class="meta"><span>By <b>Yiwen Tan</b></span><span>The University of Queensland, Master of Business (Information Systems)</span></div>
+    <div class="stack">
+      <span class="chip">Dify workflow</span><span class="chip">Supabase · PostgreSQL</span><span class="chip">gpt-4o-mini</span><span class="chip">Python · duckdb evaluation</span><span class="chip">AI-assisted development</span>
+    </div>
+    <div class="cta"><a class="btn" href="https://udify.app/workflow/s7PovPgswjjiKq9P" target="_blank" rel="noopener">Try it live ↗</a><span class="cta-note">Opens a public demo where you can ask your own questions. The evaluation above used gpt-4o-mini; the live demo runs on Gemini 3.8 Flash, so answers may differ slightly. Each answer takes about 15–40 seconds.</span></div>
+  </header>
+
+  <section aria-labelledby="s-result">
+    <h2 id="s-result"><span class="tag">Result</span>Accuracy improved from 70% to 90%</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="v">70%<span class="arrow">→</span><span class="to">90%</span></div><div class="l">Overall accuracy (30 questions)</div></div>
+      <div class="kpi"><div class="v">25%<span class="arrow">→</span><span class="to">63%</span></div><div class="l">Hard questions (8)</div></div>
+      <div class="kpi"><div class="v">7 / 1 / 2</div><div class="l">Fixed / regressed / still wrong</div></div>
+    </div>
+    <div class="chart" role="img" aria-label="Accuracy by difficulty: easy 80% to 100%, medium 92% to 100%, hard 25% to 63%, overall 70% to 90%">
+      <div class="legend"><span><i style="background:var(--before)"></i>v1 baseline</span><span><i style="background:var(--accent)"></i>v2 after iteration</span></div>
+      <div class="row"><div class="name">Easy<small>10 Qs</small></div><div class="bars">
+        <div class="bar"><div class="track"><div class="fill v1" style="width:80%"></div></div><div class="num">8/10 · 80%</div></div>
+        <div class="bar"><div class="track"><div class="fill v2" style="width:100%"></div></div><div class="num">10/10 · 100%</div></div></div></div>
+      <div class="row"><div class="name">Medium<small>12 Qs</small></div><div class="bars">
+        <div class="bar"><div class="track"><div class="fill v1" style="width:91.7%"></div></div><div class="num">11/12 · 92%</div></div>
+        <div class="bar"><div class="track"><div class="fill v2" style="width:100%"></div></div><div class="num">12/12 · 100%</div></div></div></div>
+      <div class="row"><div class="name">Hard<small>8 Qs</small></div><div class="bars">
+        <div class="bar"><div class="track"><div class="fill v1" style="width:25%"></div></div><div class="num">2/8 · 25%</div></div>
+        <div class="bar"><div class="track"><div class="fill v2" style="width:62.5%"></div></div><div class="num">5/8 · 63%</div></div></div></div>
+      <div class="row"><div class="name">Total<small>30 Qs</small></div><div class="bars">
+        <div class="bar"><div class="track"><div class="fill v1" style="width:70%"></div></div><div class="num">21/30 · 70%</div></div>
+        <div class="bar"><div class="track"><div class="fill v2" style="width:90%"></div></div><div class="num">27/30 · 90%</div></div></div></div>
+      <div class="axis"><span></span><div class="ticks"><div class="scale"><span>0%</span><span>50%</span><span>100%</span></div><span></span></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-flow">
+    <h2 id="s-flow"><span class="tag">Architecture</span>Six steps behind every question</h2>
+    <ol class="flow">
+      <li><div><b>Generate SQL</b><span>The model reads the schema, metric definitions (GMV, average order value, cancellation rate) and SQL rules in the prompt, then writes one PostgreSQL query</span></div></li>
+      <li><div><b>Clean SQL</b><span>A code step strips code fences, stray prefixes and trailing semicolons</span></div></li>
+      <li><div><b>Run read-only</b><span>An HTTP call to a Supabase run_sql function that only allows SELECT / WITH, blocks write keywords and multiple statements, times out after 5 seconds and returns at most 200 rows</span></div></li>
+      <li class="branch"><div><b>Fix on failure</b><span>If the query errors, the error message goes back to the model to rewrite the SQL, which runs once more</span></div></li>
+      <li><div><b>Merge results</b><span>Use the fixed result when the retry ran; otherwise keep the first result</span></div></li>
+      <li><div><b>Explain</b><span>Return a conclusion, a data table, a business interpretation and the SQL used, so users can verify it</span></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="s-cases">
+    <h2 id="s-cases"><span class="tag">Cases</span>Three before-and-after fixes</h2>
+
+    <div class="case">
+      <div class="q">"What is this quarter's GMV?"</div>
+      <div class="why">Date boundary: order_time includes a time of day, so <code>&lt;= '2026-09-30'</code> stops at midnight and drops every order on the last day.</div>
+      <div class="cmp">
+        <div class="side before"><div class="lab">v1 · wrong</div><div class="res">GMV = 518,700.91</div>
+<pre>where status = 'completed'
+  and order_time &gt;= '2026-07-01'
+  and <span class="hlb">order_time &lt;= '2026-09-30'</span></pre></div>
+        <div class="side after"><div class="lab">v2 · correct</div><div class="res">GMV = 526,021.34</div>
+<pre>where status = 'completed'
+<span class="hl">-- rule: half-open date ranges;
+-- the table only holds this quarter</span></pre></div>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="q">"In the new-customer coupon experiment, what is the average number of completed orders per user in the treatment and control groups?"</div>
+      <div class="why">Experiment denominator bias: an inner join drops assigned users who never ordered, which inflates the per-user average. This is one of the most common traps in experiment analysis.</div>
+      <div class="cmp">
+        <div class="side before"><div class="lab">v1 · wrong</div><div class="res">Treatment 3.43 · Control 2.95</div>
+<pre>from ab_assignments ab
+<span class="hlb">join orders o</span> on ab.user_id = o.user_id
+where o.status = 'completed'
+-- denominator: users who ordered</pre></div>
+        <div class="side after"><div class="lab">v2 · correct</div><div class="res">Treatment 3.34 · Control 2.82</div>
+<pre>from ab_assignments a
+<span class="hl">left join orders o</span> on a.user_id = o.user_id
+  <span class="hl">and o.status = 'completed'</span>
+-- denominator: all assigned users</pre></div>
+      </div>
+    </div>
+
+    <div class="case">
+      <div class="q">"How many users placed 10 or more orders this quarter?"</div>
+      <div class="why">Missing outer query: v1 returned 344 rows of "1", and the explanation step read only the first row, confidently answering "just 1 user".</div>
+      <div class="cmp">
+        <div class="side before"><div class="lab">v1 · wrong</div><div class="res">"Only 1 user"</div>
+<pre>select count(distinct user_id)
+from orders where status = 'completed'
+<span class="hlb">group by user_id having count(*) &gt;= 10</span></pre></div>
+        <div class="side after"><div class="lab">v2 · correct</div><div class="res">344 users</div>
+<pre><span class="hl">select count(*) from (</span>
+  select user_id from orders
+  where status = 'completed'
+  group by user_id having count(*) &gt;= 10
+<span class="hl">) t</span></pre></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-errors">
+    <h2 id="s-errors"><span class="tag">Iteration</span>Failure types and fixes</h2>
+    <p>The 9 wrong answers in v1 fell into 5 types, each with one targeted change. One type was not a model problem at all but a bug in my own workflow.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Failure type</th><th>Cause</th><th>Change</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Date boundary</td><td>Used &lt;= month-end date and missed the last day</td><td>Prompt rule: half-open date ranges</td><td><span class="pill ok">Fixed</span></td></tr>
+        <tr><td>Experiment denominator</td><td>Inner join dropped users with zero orders</td><td>Start from the assignment table with a left join; filter status in the join condition</td><td><span class="pill ok">Fixed</span></td></tr>
+        <tr><td>Workflow bug</td><td>The retry branch ran, but the variable aggregator always took the first non-empty value, so the fixed result was discarded</td><td>Reordered the aggregator inputs</td><td><span class="pill ok">Fixed</span></td></tr>
+        <tr><td>SQL structure</td><td>Missing subquery, alias used in HAVING, undefined alias</td><td>Added rules for subqueries, window functions, retention and an alias self-check</td><td><span class="pill part">Partly fixed</span></td></tr>
+        <tr><td>Output and explanation</td><td>Months shown as dates; explanation read only the first row</td><td>Numeric months; explanations must cover all rows</td><td><span class="pill ok">Fixed</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="s-eval">
+    <h2 id="s-eval"><span class="tag">Evaluation</span>How "correct" is judged</h2>
+    <ul class="plain">
+      <li><b>Data</b>: a synthetic food delivery database with 4 tables: 2,000 users, 300 merchants, 13,657 orders (Jul–Sep 2026) and 286 A/B test assignments. Generated with a fixed random seed, so it is reproducible.</li>
+      <li><b>Questions</b>: 30 in total (10 easy, 12 medium, 8 hard). Hard questions cover A/B test metrics, window functions, month-over-month growth and retention, plus one question the data cannot answer, to check the system does not make things up.</li>
+      <li><b>Answer key</b>: computed by running reference SQL with duckdb on the local CSVs and cross-checked against the database.</li>
+      <li><b>Scoring</b>: compares query results rather than SQL text, since one question can have several correct queries. Numbers allow ±0.01, column names and order are ignored, and row order is checked where the question asks for ranking.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="s-limits">
+    <h2 id="s-limits"><span class="tag">Limits</span>What this result does not show</h2>
+    <ul class="plain">
+      <li>The v2 rules were written from the v1 failures and retested on the same questions, so 90% is optimistic. The next step is a held-out test set.</li>
+      <li>Rules can over-generalise: in one question the model applied "use a left join" where it did not belong; rounding happened to hide the effect.</li>
+      <li>Model output varies: "How much did GMV grow from August to September?" was right in v1 and answered as an absolute difference in v2. The question is ambiguous, and a production system should ask the user to clarify.</li>
+      <li>Each question ran once, and the data and schema are simpler than a real business.</li>
+    </ul>
+    <p class="note">Next steps: a searchable metric dictionary injected on demand, clarifying questions for ambiguous requests, and three runs per question.</p>
+  </section>
+
+  <footer><span>Food Delivery Analytics Assistant · Yiwen Tan</span><span>All data is synthetic and does not represent any real company</span></footer>
+</div>
+</body>
+</html>
