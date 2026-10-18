@@ -42,6 +42,10 @@ section{display:flex;flex-direction:column;gap:16px;min-width:0}
 .meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:13.5px}
 .meta b{color:var(--fg);font-weight:600}
 .stack{display:flex;flex-wrap:wrap;gap:8px}
+.cta{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.btn{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--bg);text-decoration:none;font-weight:600;font-size:15px;padding:10px 20px;border-radius:8px}
+.btn:hover{filter:brightness(1.08)}
+.cta-note{color:var(--muted);font-size:13px;line-height:1.6;flex:1 1 260px}
 .chip{font-family:var(--mono);font-size:12.5px;padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--fg)}
 header{display:flex;flex-direction:column;gap:16px;padding-bottom:28px;border-bottom:1px solid var(--line)}
 /* headline numbers */
@@ -125,6 +129,7 @@ a{color:var(--accent)}
     <div class="stack">
       <span class="chip">Dify 工作流</span><span class="chip">Supabase · PostgreSQL</span><span class="chip">gpt-4o-mini</span><span class="chip">Python · duckdb 评测</span><span class="chip">AI Coding 辅助开发</span>
     </div>
+    <div class="cta"><a class="btn" href="https://udify.app/workflow/6XZuq5W0SQ9OhCxX" target="_blank" rel="noopener">在线试用 ↗</a><span class="cta-note">打开公开演示页，直接用中文提问。上面的评测用的是 gpt-4o-mini，在线演示改用 Gemini 3.8 Flash，答案可能略有差异；每次回答约 15–40 秒。</span></div>
   </header>
 
   <section aria-labelledby="s-result">
